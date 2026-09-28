@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Local Music Player</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+ <aside id="side" class="panel">
+  <div class="logo"><i><svg viewBox="0 0 24 24"><path d="M9 3v11.3A3.5 3.5 0 1 0 11 17.5V7h6V3z"/></svg></i>Local Music</div>
+  <button class="nav on" data-v="all"><svg viewBox="0 0 24 24"><path d="M4 4h4v16H4zm6 0h4v16h-4zm6 2.5 3.8-1 3.7 13.5-3.9 1z" transform="scale(.9) translate(1 1)"/></svg>Your Library</button>
+  <button class="nav" data-v="albums"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 14a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-5.500a1.500 1.500 0 1 0 0 3 1.500 1.500 0 0 0 0-3z"/></svg>Albums</button>
+  <button class="nav" data-v="liked"><svg viewBox="0 0 24 24"><path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.800-8 11-8 11z"/></svg>Liked Songs</button>
+  <div class="plh"><span>Playlists</span><button id="newPl" title="New playlist">＋</button></div>
+  <div id="pls"></div>
+  <button class="add" id="addF">+ Add songs</button>
+  <button class="add alt" id="addD">+ Add album folder</button>
+  <div class="hint">Your files never leave your device. Songs stay in memory until you close or refresh this page. Pick a folder (or drop one) to import an album; cover art is read from the tags or from cover.jpg/folder.jpg. Playlists are remembered in this browser. Drag &amp; drop works anywhere, press Space to play/pause.</div>
+  <input type="file" id="fi" accept="audio/*,.mp3,.m4a,.flac,.wav,.ogg,.opus,.aac" multiple hidden>
+  <input type="file" id="fd" webkitdirectory multiple hidden>
+ </aside>
+
+ <main id="main" class="panel">
+  <div id="drop">Drop music to add it</div>
+  <div id="top"><div class="sw"><svg viewBox="0 0 24 24"><path d="M10.5 3a7.500 7.500 0 0 1 5.900 12.100l4.300 4.300-1.400 1.400-4.300-4.300A7.500 7.500 0 1 1 10.500 3zm0 2a5.500 5.500 0 1 0 0 11 5.500 5.500 0 0 0 0-11z"/></svg><input id="q" placeholder="Search your songs" type="search"></div></div>
+  <div id="hero"><div id="cover">♪</div><div><small>Playlist</small><h1 id="ttl">Your Library</h1><p id="sub">0 songs</p></div></div>
+  <div id="actions">
+   <button id="big" aria-label="Play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+   <button class="ic" id="shuf2" title="Shuffle"><svg viewBox="0 0 24 24"><path d="M14 4h6v6l-2.300-2.300-3.700 3.700-1.400-1.400 3.700-3.700zM4 6h4l9 12h3v2h-4L7 8H4zm0 12h3l2.300-3.100 1.300 1.700L8.500 20H4zM14 20l2.300-2.300-1.700-1.700 1.400-1.400L18 16.600 20 14.600V20z" transform="scale(.9)"/></svg></button>
+   <span id="plact" style="display:none;gap:10px"><button class="pill" id="plren">Rename</button><button class="pill" id="pldel">Delete</button></span>
+  </div>
+  <div id="list"></div>
+ </main>
+
+ <footer id="bar" class="panel">
+  <div id="now"><div class="art" id="nart" style="background:var(--hover)">♪</div><div style="min-width:0"><b id="nt">Nothing playing</b><span id="na">Add songs to begin</span></div></div>
+  <div id="ctrl">
+   <div class="btns">
+    <button class="ic" id="shuf" title="Shuffle"><svg viewBox="0 0 24 24"><path d="M14 4h6v6l-2.300-2.300-3.700 3.700-1.400-1.400 3.700-3.700zM4 6h4l9 12h3v2h-4L7 8H4zm0 12h3l2.300-3.100 1.300 1.700L8.500 20H4zM14 20l2.300-2.300-1.700-1.700 1.400-1.400L18 16.600 20 14.600V20z" transform="scale(.9)"/></svg></button>
+    <button class="ic" id="prev" title="Previous"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zm3.500 7L19 5v14z"/></svg></button>
+    <button id="play" title="Play/Pause"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+    <button class="ic" id="next" title="Next"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM5 19V5l9.500 7z"/></svg></button>
+    <button class="ic" id="rep" title="Repeat"><svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2z"/></svg></button>
+   </div>
+   <div class="seek"><span id="cur">0:00</span><input type="range" id="seek" min="0" max="1000" value="0"><span id="dur">0:00</span></div>
+  </div>
+  <div id="vol"><button class="ic" id="mute"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zm13.500 3A4.500 4.500 0 0 0 14 8v8a4.500 4.500 0 0 0 2.500-4z"/></svg></button><input type="range" id="vr" min="0" max="100" value="80"></div>
+ </footer>
+</div>
+
+<div id="menu"></div><div id="toast"></div>
+<div id="dlg"><div class="box"><h3 id="dt"></h3><input id="di" maxlength="60" placeholder="Playlist name"><div class="bt"><button id="dc">Cancel</button><button id="dok">Save</button></div></div></div>
+<script src="script.js"></script>
+</body>
+</html>
