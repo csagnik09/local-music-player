@@ -183,18 +183,28 @@ function render(){
   if(view==="album"&&!tracks.some(t=>akey(t)===albumKey))view="albums";
   if(view==="playlist"&&!curPl())view="all";
   $("#plact").style.display=view==="playlist"?"flex":"none";
-  document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("on",b.dataset.v===view||(view==="album"&&b.dataset.v==="albums")));
+  document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("on",b.dataset.v===view||(view==="album"&&b.dataset.v==="albums")||(view==="playlist"&&b.dataset.v==="playlists")));
   renderPls();
   const at=view==="album"?tracks.find(t=>akey(t)===albumKey):view==="playlist"?(v.find(artOf)||v[0]||null):cur;
   $("#cover").style.background=at?bg(at):"";$("#cover").textContent=at&&artOf(at)?"":"♪";
-  $("#main").style.setProperty("--hue",at?`hsl(${hue(at.album)} 45% 24%)`:"#1e3a2a");
-  $("#hero small").textContent=view==="album"?"Album":view==="albums"?"Collection":view==="playlist"?"Playlist":"Library";
-  $("#ttl").textContent=view==="playlist"?curPl().name:view==="album"?at.album:view==="albums"?"Albums":view==="liked"?"Liked Songs":"Your Library";
+  document.documentElement.style.setProperty("--hue",at?`hsl(${hue(at.album)} 45% 24%)`:"#1e3a2a");
+  $("#hero small").textContent=view==="album"?"Album":(view==="albums"||view==="playlists")?"Collection":view==="playlist"?"Playlist":"Library";
+  $("#ttl").textContent=view==="playlists"?"Playlists":view==="playlist"?curPl().name:view==="album"?at.album:view==="albums"?"Albums":view==="liked"?"Liked Songs":"Your Library";
   const tot=v.reduce((s,t)=>s+(t.dur||0),0);
   $("#sub").textContent=(view==="albums"?groups(v).length+" albums · ":"")+v.length+" song"+(v.length==1?"":"s")+(tot?" · "+Math.round(tot/60)+" min":"");
+  if(view==="playlists")$("#sub").textContent=playlists.length+" playlist"+(playlists.length==1?"":"s");
   if(view==="playlist"){const p=curPl(),miss=p.items.filter(k=>!tracks.some(t=>tkey(t)===k)).length;if(miss)$("#sub").textContent+=" · "+miss+" not loaded"}
   if(cur){$("#nt").textContent=cur.title;$("#na").textContent=cur.artist+" · "+cur.album;
     const a=$("#nart");a.style.background=bg(cur);a.textContent=artOf(cur)?"":"♪"}
+  if(view==="playlists"){
+    const m=new Map(tracks.map(t=>[tkey(t),t]));
+    shown=playlists.map(p=>{const ts=p.items.map(k=>m.get(k)).filter(Boolean);return{p,art:ts.find(artOf)||ts[0]||null}});
+    L.innerHTML=`<div class="grid"><div class="card" data-p="new"><div class="art" style="background:var(--hover)">＋</div><b>New playlist</b><span>Create one</span></div>`+shown.map((g,i)=>`<div class="card" data-p="${i}"><div class="art">${g.art&&artOf(g.art)?"":"♫"}</div><b></b><span></span></div>`).join("")+`</div>`;
+    L.querySelectorAll(".card[data-p]").forEach(c=>{if(c.dataset.p==="new")return;const g=shown[+c.dataset.p];
+      c.querySelector("b").textContent=g.p.name;c.querySelector("span").textContent=g.p.items.length+" songs";
+      c.querySelector(".art").style.background=g.art?bg(g.art):grad(g.p.name)});
+    return;
+  }
   if(!v.length&&view==="playlist"){
     const p=curPl();L.innerHTML=`<div id="empty"><h2>${p.items.length?"Songs not loaded":"This playlist is empty"}</h2>${p.items.length?"Add the original song files again to see this playlist's songs.":"Click the ＋ next to any song to add it here."}</div>`;return}
   if(!v.length){
@@ -262,6 +272,12 @@ $("#rep").onclick=()=>{repeat=(repeat+1)%3;const b=$("#rep");b.classList.toggle(
 
 /* ---------- UI wiring ---------- */
 $("#list").onclick=e=>{
+  const pc=e.target.closest("[data-p]");
+  if(pc){
+    if(pc.dataset.p==="new")ask("New playlist","").then(n=>{if(n){const p=newPl(n);view="playlist";plId=p.id;render()}});
+    else{plId=shown[+pc.dataset.p].p.id;view="playlist";$("#list").scrollTop=0;render()}
+    return;
+  }
   const c=e.target.closest(".card");
   if(c){albumKey=shown[+c.dataset.a].key;view="album";$("#list").scrollTop=0;render();return}
   const mb=e.target.closest("[data-m]");
@@ -278,6 +294,9 @@ $("#list").addEventListener("scroll",closeMenu);
 $("#newPl").onclick=async()=>{const n=await ask("New playlist","");if(n){const p=newPl(n);view="playlist";plId=p.id;render()}};
 $("#plren").onclick=async()=>{const p=curPl(),n=await ask("Rename playlist",p.name);if(n){p.name=n;save();render()}};
 $("#pldel").onclick=async()=>{const p=curPl();if(await ask("Delete “"+p.name+"”?","",true)){playlists=playlists.filter(x=>x!==p);save();view="all";render()}};
+$("#addM").onclick=()=>$("#fi").click();
+$("#now").onclick=()=>{if(cur&&matchMedia("(max-width:820px)").matches)$("#bar").classList.add("full")};
+$("#npc").onclick=()=>$("#bar").classList.remove("full");
 $("#q").oninput=e=>{filter=e.target.value.toLowerCase();render()};
 $("#addF").onclick=()=>$("#fi").click();$("#addD").onclick=()=>$("#fd").click();
 $("#fi").onchange=e=>{addFiles(e.target.files);e.target.value=""};
@@ -303,6 +322,7 @@ addEventListener("drop",async e=>{
 });
 addEventListener("keydown",e=>{
   if(e.target.tagName==="INPUT"&&e.target.type!=="range")return;
+  if(e.code==="Escape")$("#bar").classList.remove("full");
   if(e.code==="Space"){e.preventDefault();toggle()}
   else if(e.code==="ArrowRight"&&e.shiftKey)step(1,false);
   else if(e.code==="ArrowLeft"&&e.shiftKey)step(-1,false);

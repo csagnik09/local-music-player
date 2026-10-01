@@ -2,14 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#000000">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Local Music Player</title>
 <style>
-:root{--bg:#000;--panel:#121212;--panel2:#1a1a1a;--hover:#2a2a2a;--text:#fff;--muted:#b3b3b3;--accent:#1db954;--line:#282828;
+:root{color-scheme:dark;--bg:#000;--panel:#121212;--panel2:#1a1a1a;--hover:#2a2a2a;--text:#fff;--muted:#b3b3b3;--accent:#1db954;--line:#282828;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#e9e9e9;--panel:#fff;--panel2:#f4f4f4;--hover:#e6e6e6;--text:#111;--muted:#666;--line:#ddd}}
-:root[data-theme="light"]{--bg:#e9e9e9;--panel:#fff;--panel2:#f4f4f4;--hover:#e6e6e6;--text:#111;--muted:#666;--line:#ddd}
-:root[data-theme="dark"]{--bg:#000;--panel:#121212;--panel2:#1a1a1a;--hover:#2a2a2a;--text:#fff;--muted:#b3b3b3;--line:#282828}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
@@ -79,14 +78,6 @@ input[type=range]:hover{--fill:var(--accent)}
 #vol{display:flex;align-items:center;gap:8px;justify-content:flex-end}#vol input{max-width:110px}
 .rep1::after{content:"1";position:absolute;font-size:8px;font-weight:800;margin:-2px 0 0 -6px;color:var(--accent)}
 #mnav{display:none}
-@media (max-width:820px){
-#app{grid-template-columns:1fr;grid-template-rows:auto 1fr 132px}
-#side{flex-direction:row;flex-wrap:wrap;padding:10px;gap:6px;align-items:center}
-.logo,.hint{display:none}.nav{width:auto;padding:8px 12px}.add{margin:0;padding:9px 14px}
-#bar{grid-column:1;grid-template-columns:1fr;grid-template-rows:auto auto;gap:4px;padding:8px 14px}
-#vol{display:none}#top{padding:12px 16px}#hero{padding:4px 16px 14px}#actions,#list{padding-left:8px;padding-right:8px}
-.row{grid-template-columns:28px 1fr 28px 28px 46px;gap:8px}
-}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;padding:8px 12px}
 .card{padding:12px;border-radius:8px;background:var(--panel2);cursor:pointer;min-width:0}
 .card:hover{background:var(--hover)}
@@ -109,7 +100,42 @@ input[type=range]:hover{--fill:var(--accent)}
 #dlg h3{margin:0 0 14px}#di{width:100%;padding:11px 14px;border-radius:8px;border:1px solid var(--muted);background:var(--hover);color:var(--text);font:inherit;outline:none}
 .bt{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}.bt button{padding:9px 20px;border-radius:22px;font-weight:700}#dok{background:var(--accent);color:#000}
 #toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 18px;border-radius:22px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50;max-width:90vw}#toast.on{opacity:1}
-@media (max-width:820px){.plh{margin:0}.plh span{display:none}#pls{flex-direction:row;flex-wrap:wrap}}
+
+html,body{-webkit-tap-highlight-color:transparent}button{touch-action:manipulation}
+@supports(height:100dvh){html,body{height:100dvh}}
+.nav.mob{display:none}
+#addM{display:none;width:42px;height:42px;border-radius:50%;background:var(--accent);color:#000;font-size:24px;place-items:center;flex:none}
+#npc{display:none}
+@media (max-width:820px){
+#app{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto auto;gap:6px;padding:6px}
+#main{grid-row:1}#bar{grid-row:2}#side{grid-row:3}
+#side{flex-direction:row;padding:2px 4px;gap:0;justify-content:space-around;align-items:stretch}
+.logo,.hint,.plh,#pls,.add{display:none}
+.nav,.nav.mob{display:flex;flex-direction:column;gap:3px;padding:8px 2px;font-size:11px;flex:1;width:auto;align-items:center;justify-content:center;text-align:center;border-radius:8px}
+.nav svg{font-size:22px}.nav.on{background:none;color:var(--accent)}
+#bar{grid-column:1;grid-template-columns:1fr auto;height:64px;padding:0 12px;gap:8px}
+#vol{display:none}#now{cursor:pointer}#now .art{width:46px;height:46px}
+#bar:not(.full) .seek,#bar:not(.full) .btns .ic{display:none}
+#bar:not(.full) #ctrl{width:auto}
+#top{padding:12px 14px}.sw{max-width:none}#addM{display:grid}
+#hero{padding:0 14px 14px;gap:14px}#cover{width:104px;font-size:36px}#hero h1{font-size:28px;margin:4px 0 6px}
+#actions{padding:0 14px 10px;flex-wrap:wrap;gap:14px}#big{width:48px;height:48px}
+#list{padding:0 4px 12px}.row.head{display:none}
+.row{grid-template-columns:30px 1fr 36px 36px 42px;gap:6px;padding:8px;min-height:58px}
+.addpl,.heart{opacity:1}.addpl,.heart{padding:6px}
+.grid{grid-template-columns:repeat(2,1fr);gap:10px;padding:4px 8px}
+#toast{bottom:150px}
+#bar.full{position:fixed;inset:0;z-index:25;border-radius:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:22px;height:auto;padding:calc(env(safe-area-inset-top,0px) + 56px) 24px calc(env(safe-area-inset-bottom,0px) + 24px);background:linear-gradient(180deg,var(--hue,#1e3a2a),var(--bg) 85%)}
+#bar.full #npc{display:block;position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:14px;font-size:30px;padding:6px 10px;color:var(--text)}
+#bar.full #now{flex-direction:column;text-align:center;width:100%;gap:18px;cursor:default}
+#bar.full #nart{width:min(80vw,44vh,380px);height:auto;aspect-ratio:1;border-radius:10px;font-size:80px;box-shadow:0 14px 40px #0008}
+#bar.full #now b{font-size:22px}#bar.full #now span{font-size:15px}
+#bar.full #ctrl{width:100%;gap:20px}#bar.full .seek{order:-1;max-width:420px}
+#bar.full .btns{width:100%;max-width:380px;justify-content:space-between}
+#bar.full #play{width:68px;height:68px;font-size:32px}#bar.full .ic{font-size:26px}
+#bar.full input[type=range]{height:6px}
+#bar.full input[type=range]::-webkit-slider-thumb{opacity:1;width:16px;height:16px}
+}
 
 </style>
 </head>
@@ -117,9 +143,10 @@ input[type=range]:hover{--fill:var(--accent)}
 <div id="app">
  <aside id="side" class="panel">
   <div class="logo"><i><svg viewBox="0 0 24 24"><path d="M9 3v11.3A3.5 3.5 0 1 0 11 17.5V7h6V3z"/></svg></i>Local Music</div>
-  <button class="nav on" data-v="all"><svg viewBox="0 0 24 24"><path d="M4 4h4v16H4zm6 0h4v16h-4zm6 2.5 3.8-1 3.7 13.5-3.9 1z" transform="scale(.9) translate(1 1)"/></svg>Your Library</button>
+  <button class="nav on" data-v="all"><svg viewBox="0 0 24 24"><path d="M4 4h4v16H4zm6 0h4v16h-4zm6 2.5 3.8-1 3.7 13.5-3.9 1z" transform="scale(.9) translate(1 1)"/></svg>Library</button>
   <button class="nav" data-v="albums"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 14a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-5.500a1.500 1.500 0 1 0 0 3 1.500 1.500 0 0 0 0-3z"/></svg>Albums</button>
   <button class="nav" data-v="liked"><svg viewBox="0 0 24 24"><path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.800-8 11-8 11z"/></svg>Liked Songs</button>
+  <button class="nav mob" data-v="playlists"><svg viewBox="0 0 24 24"><path d="M3 6h12v2H3zm0 4h12v2H3zm0 4h8v2H3zm13-4v6.5a2.5 2.5 0 1 0 2 2.500V8h3V6h-5z"/></svg>Playlists</button>
   <div class="plh"><span>Playlists</span><button id="newPl" title="New playlist">＋</button></div>
   <div id="pls"></div>
   <button class="add" id="addF">+ Add songs</button>
@@ -131,7 +158,7 @@ input[type=range]:hover{--fill:var(--accent)}
 
  <main id="main" class="panel">
   <div id="drop">Drop music to add it</div>
-  <div id="top"><div class="sw"><svg viewBox="0 0 24 24"><path d="M10.5 3a7.500 7.500 0 0 1 5.900 12.100l4.300 4.300-1.400 1.400-4.300-4.300A7.500 7.500 0 1 1 10.500 3zm0 2a5.500 5.500 0 1 0 0 11 5.500 5.500 0 0 0 0-11z"/></svg><input id="q" placeholder="Search your songs" type="search"></div></div>
+  <div id="top"><div class="sw"><svg viewBox="0 0 24 24"><path d="M10.5 3a7.500 7.500 0 0 1 5.900 12.100l4.300 4.300-1.400 1.400-4.300-4.300A7.500 7.500 0 1 1 10.500 3zm0 2a5.500 5.500 0 1 0 0 11 5.500 5.500 0 0 0 0-11z"/></svg><input id="q" placeholder="Search your songs" type="search"></div><button id="addM" aria-label="Add songs">＋</button></div>
   <div id="hero"><div id="cover">♪</div><div><small>Playlist</small><h1 id="ttl">Your Library</h1><p id="sub">0 songs</p></div></div>
   <div id="actions">
    <button id="big" aria-label="Play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
@@ -142,6 +169,7 @@ input[type=range]:hover{--fill:var(--accent)}
  </main>
 
  <footer id="bar" class="panel">
+  <button id="npc" aria-label="Close player">⌄</button>
   <div id="now"><div class="art" id="nart" style="background:var(--hover)">♪</div><div style="min-width:0"><b id="nt">Nothing playing</b><span id="na">Add songs to begin</span></div></div>
   <div id="ctrl">
    <div class="btns">
@@ -345,18 +373,28 @@ function render(){
   if(view==="album"&&!tracks.some(t=>akey(t)===albumKey))view="albums";
   if(view==="playlist"&&!curPl())view="all";
   $("#plact").style.display=view==="playlist"?"flex":"none";
-  document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("on",b.dataset.v===view||(view==="album"&&b.dataset.v==="albums")));
+  document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("on",b.dataset.v===view||(view==="album"&&b.dataset.v==="albums")||(view==="playlist"&&b.dataset.v==="playlists")));
   renderPls();
   const at=view==="album"?tracks.find(t=>akey(t)===albumKey):view==="playlist"?(v.find(artOf)||v[0]||null):cur;
   $("#cover").style.background=at?bg(at):"";$("#cover").textContent=at&&artOf(at)?"":"♪";
-  $("#main").style.setProperty("--hue",at?`hsl(${hue(at.album)} 45% 24%)`:"#1e3a2a");
-  $("#hero small").textContent=view==="album"?"Album":view==="albums"?"Collection":view==="playlist"?"Playlist":"Library";
-  $("#ttl").textContent=view==="playlist"?curPl().name:view==="album"?at.album:view==="albums"?"Albums":view==="liked"?"Liked Songs":"Your Library";
+  document.documentElement.style.setProperty("--hue",at?`hsl(${hue(at.album)} 45% 24%)`:"#1e3a2a");
+  $("#hero small").textContent=view==="album"?"Album":(view==="albums"||view==="playlists")?"Collection":view==="playlist"?"Playlist":"Library";
+  $("#ttl").textContent=view==="playlists"?"Playlists":view==="playlist"?curPl().name:view==="album"?at.album:view==="albums"?"Albums":view==="liked"?"Liked Songs":"Your Library";
   const tot=v.reduce((s,t)=>s+(t.dur||0),0);
   $("#sub").textContent=(view==="albums"?groups(v).length+" albums · ":"")+v.length+" song"+(v.length==1?"":"s")+(tot?" · "+Math.round(tot/60)+" min":"");
+  if(view==="playlists")$("#sub").textContent=playlists.length+" playlist"+(playlists.length==1?"":"s");
   if(view==="playlist"){const p=curPl(),miss=p.items.filter(k=>!tracks.some(t=>tkey(t)===k)).length;if(miss)$("#sub").textContent+=" · "+miss+" not loaded"}
   if(cur){$("#nt").textContent=cur.title;$("#na").textContent=cur.artist+" · "+cur.album;
     const a=$("#nart");a.style.background=bg(cur);a.textContent=artOf(cur)?"":"♪"}
+  if(view==="playlists"){
+    const m=new Map(tracks.map(t=>[tkey(t),t]));
+    shown=playlists.map(p=>{const ts=p.items.map(k=>m.get(k)).filter(Boolean);return{p,art:ts.find(artOf)||ts[0]||null}});
+    L.innerHTML=`<div class="grid"><div class="card" data-p="new"><div class="art" style="background:var(--hover)">＋</div><b>New playlist</b><span>Create one</span></div>`+shown.map((g,i)=>`<div class="card" data-p="${i}"><div class="art">${g.art&&artOf(g.art)?"":"♫"}</div><b></b><span></span></div>`).join("")+`</div>`;
+    L.querySelectorAll(".card[data-p]").forEach(c=>{if(c.dataset.p==="new")return;const g=shown[+c.dataset.p];
+      c.querySelector("b").textContent=g.p.name;c.querySelector("span").textContent=g.p.items.length+" songs";
+      c.querySelector(".art").style.background=g.art?bg(g.art):grad(g.p.name)});
+    return;
+  }
   if(!v.length&&view==="playlist"){
     const p=curPl();L.innerHTML=`<div id="empty"><h2>${p.items.length?"Songs not loaded":"This playlist is empty"}</h2>${p.items.length?"Add the original song files again to see this playlist's songs.":"Click the ＋ next to any song to add it here."}</div>`;return}
   if(!v.length){
@@ -424,6 +462,12 @@ $("#rep").onclick=()=>{repeat=(repeat+1)%3;const b=$("#rep");b.classList.toggle(
 
 /* ---------- UI wiring ---------- */
 $("#list").onclick=e=>{
+  const pc=e.target.closest("[data-p]");
+  if(pc){
+    if(pc.dataset.p==="new")ask("New playlist","").then(n=>{if(n){const p=newPl(n);view="playlist";plId=p.id;render()}});
+    else{plId=shown[+pc.dataset.p].p.id;view="playlist";$("#list").scrollTop=0;render()}
+    return;
+  }
   const c=e.target.closest(".card");
   if(c){albumKey=shown[+c.dataset.a].key;view="album";$("#list").scrollTop=0;render();return}
   const mb=e.target.closest("[data-m]");
@@ -440,6 +484,9 @@ $("#list").addEventListener("scroll",closeMenu);
 $("#newPl").onclick=async()=>{const n=await ask("New playlist","");if(n){const p=newPl(n);view="playlist";plId=p.id;render()}};
 $("#plren").onclick=async()=>{const p=curPl(),n=await ask("Rename playlist",p.name);if(n){p.name=n;save();render()}};
 $("#pldel").onclick=async()=>{const p=curPl();if(await ask("Delete “"+p.name+"”?","",true)){playlists=playlists.filter(x=>x!==p);save();view="all";render()}};
+$("#addM").onclick=()=>$("#fi").click();
+$("#now").onclick=()=>{if(cur&&matchMedia("(max-width:820px)").matches)$("#bar").classList.add("full")};
+$("#npc").onclick=()=>$("#bar").classList.remove("full");
 $("#q").oninput=e=>{filter=e.target.value.toLowerCase();render()};
 $("#addF").onclick=()=>$("#fi").click();$("#addD").onclick=()=>$("#fd").click();
 $("#fi").onchange=e=>{addFiles(e.target.files);e.target.value=""};
@@ -465,6 +512,7 @@ addEventListener("drop",async e=>{
 });
 addEventListener("keydown",e=>{
   if(e.target.tagName==="INPUT"&&e.target.type!=="range")return;
+  if(e.code==="Escape")$("#bar").classList.remove("full");
   if(e.code==="Space"){e.preventDefault();toggle()}
   else if(e.code==="ArrowRight"&&e.shiftKey)step(1,false);
   else if(e.code==="ArrowLeft"&&e.shiftKey)step(-1,false);
