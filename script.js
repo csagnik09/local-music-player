@@ -183,11 +183,13 @@ function render(){
   if(view==="album"&&!tracks.some(t=>akey(t)===albumKey))view="albums";
   if(view==="playlist"&&!curPl())view="all";
   $("#plact").style.display=view==="playlist"?"flex":"none";
+  bigIcon();
+  $("#actions").style.display=(view==="albums"||view==="playlists")?"none":"";
   document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("on",b.dataset.v===view||(view==="album"&&b.dataset.v==="albums")||(view==="playlist"&&b.dataset.v==="playlists")));
   renderPls();
-  const at=view==="album"?tracks.find(t=>akey(t)===albumKey):view==="playlist"?(v.find(artOf)||v[0]||null):cur;
-  $("#cover").style.background=at?bg(at):"";$("#cover").textContent=at&&artOf(at)?"":"♪";
-  document.documentElement.style.setProperty("--hue",at?`hsl(${hue(at.album)} 45% 24%)`:"#1e3a2a");
+  const at=view==="album"?tracks.find(t=>akey(t)===albumKey):view==="playlist"?(v.find(artOf)||v[0]||null):null;
+  $("#cover").style.display=at?"":"none";$("#cover").style.background=at?bg(at):"";$("#cover").textContent=at&&artOf(at)?"":"♪";
+  document.documentElement.style.setProperty("--hue",(cur||at)?`hsl(${hue((cur||at).album)} 45% 24%)`:"#2a2550");
   $("#hero small").textContent=view==="album"?"Album":(view==="albums"||view==="playlists")?"Collection":view==="playlist"?"Playlist":"Library";
   $("#ttl").textContent=view==="playlists"?"Playlists":view==="playlist"?curPl().name:view==="album"?at.album:view==="albums"?"Albums":view==="liked"?"Liked Songs":"Your Library";
   const tot=v.reduce((s,t)=>s+(t.dur||0),0);
@@ -199,7 +201,7 @@ function render(){
   if(view==="playlists"){
     const m=new Map(tracks.map(t=>[tkey(t),t]));
     shown=playlists.map(p=>{const ts=p.items.map(k=>m.get(k)).filter(Boolean);return{p,art:ts.find(artOf)||ts[0]||null}});
-    L.innerHTML=`<div class="grid"><div class="card" data-p="new"><div class="art" style="background:var(--hover)">＋</div><b>New playlist</b><span>Create one</span></div>`+shown.map((g,i)=>`<div class="card" data-p="${i}"><div class="art">${g.art&&artOf(g.art)?"":"♫"}</div><b></b><span></span></div>`).join("")+`</div>`;
+    L.innerHTML=`<div class="grid"><div class="card" data-p="new"><div class="art" style="background:var(--hover);color:var(--muted)">＋</div><b>New playlist</b><span>Create one</span></div>`+shown.map((g,i)=>`<div class="card" data-p="${i}"><div class="art">${g.art&&artOf(g.art)?"":"♫"}</div><b></b><span></span></div>`).join("")+`</div>`;
     L.querySelectorAll(".card[data-p]").forEach(c=>{if(c.dataset.p==="new")return;const g=shown[+c.dataset.p];
       c.querySelector("b").textContent=g.p.name;c.querySelector("span").textContent=g.p.items.length+" songs";
       c.querySelector(".art").style.background=g.art?bg(g.art):grad(g.p.name)});
@@ -208,7 +210,7 @@ function render(){
   if(!v.length&&view==="playlist"){
     const p=curPl();L.innerHTML=`<div id="empty"><h2>${p.items.length?"Songs not loaded":"This playlist is empty"}</h2>${p.items.length?"Add the original song files again to see this playlist's songs.":"Click the ＋ next to any song to add it here."}</div>`;return}
   if(!v.length){
-    L.innerHTML=`<div id="empty"><h2>${tracks.length?"Nothing here":"Add your music"}</h2>${tracks.length?"No songs match this view.":"Use <b>Add songs</b> or <b>Add album folder</b>, or drag files and folders into this window. Cover art is picked up automatically."}</div>`;return;
+    L.innerHTML=`<div id="empty"><h2>${tracks.length?"Nothing here":"Add your music"}</h2>${tracks.length?"No songs match this view.":"Use the <b>Add</b> button to pick songs or a whole folder, or drag them into this window. Cover art is picked up automatically."}</div>`;return;
   }
   if(view==="albums"){
     shown=groups(v);
@@ -244,10 +246,14 @@ function toggle(){
   if(!cur){const v=visible();if(v.length)playT(shuffle?v[Math.floor(Math.random()*v.length)]:v[0]);return}
   audio.paused?audio.play():audio.pause();
 }
+function bigIcon(){
+  const on=!audio.paused&&!!cur&&visible().includes(cur);
+  $("#big").innerHTML=`<svg viewBox="0 0 24 24">${on?PA:P}</svg>`;
+}
 function ui(){
-  const p=audio.paused;
+  const p=audio.paused;document.body.classList.toggle("playing",!p);
   $("#play").innerHTML=`<svg viewBox="0 0 24 24">${p?P:PA}</svg>`;
-  $("#big").innerHTML=`<svg viewBox="0 0 24 24">${p?P:PA}</svg>`;
+  bigIcon();
   const r=$("#list .row.cur");if(r)r.classList.toggle("playing",!p);
 }
 const setP=el=>el.style.setProperty("--p",(el.value-el.min)/(el.max-el.min)*100+"%");
@@ -263,7 +269,7 @@ const vr=$("#vr");audio.volume=.8;setP(vr);
 vr.oninput=()=>{audio.volume=vr.value/100;audio.muted=false;setP(vr)};
 $("#mute").onclick=()=>{audio.muted=!audio.muted;vr.value=audio.muted?0:audio.volume*100;setP(vr)};
 $("#play").onclick=toggle;
-$("#big").onclick=()=>{const v=visible();if((view==="album"||view==="playlist")&&v.length&&!v.includes(cur))playT(v[0]);else toggle()};
+$("#big").onclick=()=>{const v=visible();if(cur&&v.length&&!v.includes(cur))playT(shuffle?v[Math.floor(Math.random()*v.length)]:v[0]);else toggle()};
 $("#next").onclick=()=>step(1,false);
 $("#prev").onclick=()=>{if(audio.currentTime>3)audio.currentTime=0;else step(-1,false)};
 const setShuf=()=>["#shuf","#shuf2"].forEach(s=>$(s).classList.toggle("on",shuffle));
@@ -289,24 +295,25 @@ $("#list").onclick=e=>{
   cur===t?toggle():playT(t);
 };
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{view=b.dataset.v;$("#list").scrollTop=0;render()});
-document.addEventListener("click",e=>{if(!e.target.closest("#menu,.addpl,#addM"))closeMenu()});
+document.addEventListener("click",e=>{if(!e.target.closest("#menu,.addpl,#addM,#addF"))closeMenu()});
 $("#list").addEventListener("scroll",closeMenu);
 $("#newPl").onclick=async()=>{const n=await ask("New playlist","");if(n){const p=newPl(n);view="playlist";plId=p.id;render()}};
 $("#plren").onclick=async()=>{const p=curPl(),n=await ask("Rename playlist",p.name);if(n){p.name=n;save();render()}};
 $("#pldel").onclick=async()=>{const p=curPl();if(await ask("Delete “"+p.name+"”?","",true)){playlists=playlists.filter(x=>x!==p);save();view="all";render()}};
-$("#addM").onclick=()=>{
-  const m=$("#menu"),r=$("#addM").getBoundingClientRect();
+const openAdd=btn=>{
+  const m=$("#menu"),r=btn.getBoundingClientRect();
   if(m.style.display==="block"){closeMenu();return}
   m.innerHTML="";
   [["Add songs","#fi"],["Add folder","#fd"]].forEach(([t,id])=>{
     const b=document.createElement("button");b.textContent=t;b.onclick=()=>{closeMenu();$(id).click()};m.append(b)});
   m.style.display="block";
-  m.style.left=Math.max(8,innerWidth-m.offsetWidth-14)+"px";m.style.top=(r.bottom+6)+"px";
+  m.style.left=Math.max(8,Math.min(r.left,innerWidth-m.offsetWidth-14))+"px";m.style.top=(r.bottom+6)+"px";
 };
+$("#addM").onclick=()=>openAdd($("#addM"));$("#addF").onclick=()=>openAdd($("#addF"));
 $("#now").onclick=()=>{if(cur&&matchMedia("(max-width:820px)").matches)$("#bar").classList.add("full")};
 $("#npc").onclick=()=>$("#bar").classList.remove("full");
 $("#q").oninput=e=>{filter=e.target.value.toLowerCase();render()};
-$("#addF").onclick=()=>$("#fi").click();$("#addD").onclick=()=>$("#fd").click();
+
 $("#fi").onchange=e=>{addFiles(e.target.files);e.target.value=""};
 $("#fd").onchange=e=>{addFiles(e.target.files);e.target.value=""};
 
@@ -340,4 +347,9 @@ addEventListener("keydown",e=>{
 if("mediaSession"in navigator){const m=navigator.mediaSession;
   m.setActionHandler("play",()=>audio.play());m.setActionHandler("pause",()=>audio.pause());
   m.setActionHandler("nexttrack",()=>step(1,false));m.setActionHandler("previoustrack",()=>step(-1,false));}
+const SUN='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
+const MOON='<svg viewBox="0 0 24 24"><path d="M21 12.800A9 9 0 1 1 11.200 3a7 7 0 0 0 9.800 9.800z"/></svg>';
+function setTheme(t){document.documentElement.dataset.theme=t;$("#theme").innerHTML=t==="dark"?SUN:MOON;try{localStorage.setItem("sur.theme",t)}catch(e){}}
+setTheme(document.documentElement.dataset.theme==="light"?"light":"dark");
+$("#theme").onclick=()=>setTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");
 setP(sk);render();
