@@ -289,12 +289,20 @@ $("#list").onclick=e=>{
   cur===t?toggle():playT(t);
 };
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{view=b.dataset.v;$("#list").scrollTop=0;render()});
-document.addEventListener("click",e=>{if(!e.target.closest("#menu,.addpl"))closeMenu()});
+document.addEventListener("click",e=>{if(!e.target.closest("#menu,.addpl,#addM"))closeMenu()});
 $("#list").addEventListener("scroll",closeMenu);
 $("#newPl").onclick=async()=>{const n=await ask("New playlist","");if(n){const p=newPl(n);view="playlist";plId=p.id;render()}};
 $("#plren").onclick=async()=>{const p=curPl(),n=await ask("Rename playlist",p.name);if(n){p.name=n;save();render()}};
 $("#pldel").onclick=async()=>{const p=curPl();if(await ask("Delete “"+p.name+"”?","",true)){playlists=playlists.filter(x=>x!==p);save();view="all";render()}};
-$("#addM").onclick=()=>$("#fi").click();
+$("#addM").onclick=()=>{
+  const m=$("#menu"),r=$("#addM").getBoundingClientRect();
+  if(m.style.display==="block"){closeMenu();return}
+  m.innerHTML="";
+  [["Add songs","#fi"],["Add folder","#fd"]].forEach(([t,id])=>{
+    const b=document.createElement("button");b.textContent=t;b.onclick=()=>{closeMenu();$(id).click()};m.append(b)});
+  m.style.display="block";
+  m.style.left=Math.max(8,innerWidth-m.offsetWidth-14)+"px";m.style.top=(r.bottom+6)+"px";
+};
 $("#now").onclick=()=>{if(cur&&matchMedia("(max-width:820px)").matches)$("#bar").classList.add("full")};
 $("#npc").onclick=()=>$("#bar").classList.remove("full");
 $("#q").oninput=e=>{filter=e.target.value.toLowerCase();render()};
