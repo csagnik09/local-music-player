@@ -387,6 +387,8 @@ addEventListener("drop",async e=>{
   else addFiles(e.dataTransfer.files);
 });
 addEventListener("keydown",e=>{
+  if(e.code==="Escape"&&$("#set").classList.contains("on")){closeSettings();return}
+  if($("#set").classList.contains("on"))return;
   if(e.target.tagName==="INPUT"&&e.target.type!=="range")return;
   if(e.code==="Escape")$("#bar").classList.remove("full");
   if(e.code==="Space"){e.preventDefault();toggle()}
@@ -444,10 +446,91 @@ async function initLinked(){
     if(linked.some(l=>!l.ok))toast("Tap Add, then Reconnect, to load your linked music folder",5000);
   }catch(e){}
 }
-const SUN='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
-const MOON='<svg viewBox="0 0 24 24"><path d="M21 12.800A9 9 0 1 1 11.200 3a7 7 0 0 0 9.800 9.800z"/></svg>';
-function setTheme(t){document.documentElement.dataset.theme=t;$("#theme").innerHTML=t==="dark"?SUN:MOON;try{localStorage.setItem("sur.theme",t)}catch(e){}}
-setTheme(document.documentElement.dataset.theme==="light"?"light":"dark");
-$("#theme").onclick=()=>setTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");
+/* ---------- settings: theme + equalizer ---------- */
+const mq=matchMedia("(prefers-color-scheme:light)");
+let themeMode="auto";
+try{const m=localStorage.getItem("sur.theme");if(m==="light"||m==="dark")themeMode=m}catch(e){}
+function applyTheme(){
+  document.documentElement.dataset.theme=themeMode==="auto"?(mq.matches?"light":"dark"):themeMode;
+  document.querySelectorAll("#seg button").forEach(b=>b.classList.toggle("on",b.dataset.m===themeMode));
+}
+function setThemeMode(m){themeMode=m;try{localStorage.setItem("sur.theme",m)}catch(e){}applyTheme()}
+(mq.addEventListener?mq.addEventListener("change",()=>{if(themeMode==="auto")applyTheme()}):mq.addListener(()=>{if(themeMode==="auto")applyTheme()}));
+document.querySelectorAll("#seg button").forEach(b=>b.onclick=()=>setThemeMode(b.dataset.m));
+
+const BANDS=[32,64,125,250,500,1000,2000,4000,8000,16000];
+const PRESETS={
+  "Flat":[0,0,0,0,0,0,0,0,0,0],
+  "Bass boost":[6,5,4,2,0,0,0,0,0,0],
+  "Treble boost":[0,0,0,0,0,1,2,4,5,6],
+  "Vocal":[-2,-2,-1,1,3,3,2,1,0,-1],
+  "Rock":[5,4,2,-1,-2,-1,2,4,5,5],
+  "Pop":[-1,1,3,4,3,0,-1,-1,1,2],
+  "Classical":[0,0,0,0,0,0,-3,-3,-3,-5],
+  "Electronic":[5,4,1,0,-2,2,1,2,4,5],
+  "Hip hop":[5,5,2,3,-1,-1,2,0,2,3],
+  "Acoustic":[4,4,3,1,2,2,3,3,2,1]
+};
+let eq={on:false,preset:"Flat",gains:PRESETS.Flat.slice()};
+try{const r=JSON.parse(localStorage.getItem("sur.eq")||"null");
+  if(r&&Array.isArray(r.gains)&&r.gains.length===10)eq={on:!!r.on,preset:r.preset||"Custom",gains:r.gains.map(n=>Math.max(-12,Math.min(12,+n||0)))}}catch(e){}
+const saveEq=()=>{try{localStorage.setItem("sur.eq",JSON.stringify(eq))}catch(e){}};
+let actx=null,filters=[],pre=null,graphFailed=false;
+function ensureGraph(){
+  if(actx||graphFailed)return !!actx;
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC){graphFailed=true;return false}
+  try{
+    actx=new AC();
+    const src=actx.createMediaElementSource(audio);
+    filters=BANDS.map((f,i)=>{const n=actx.createBiquadFilter();n.type=i===0?"lowshelf":i===BANDS.length-1?"highshelf":"peaking";n.frequency.value=f;n.Q.value=1.1;n.gain.value=0;return n});
+    pre=actx.createGain();
+    let node=src;filters.forEach(f=>{node.connect(f);node=f});node.connect(pre);pre.connect(actx.destination);
+    return true;
+  }catch(e){actx=null;graphFailed=true;return false}
+}
+function applyEq(){
+  if(!actx)return;
+  const g=eq.on?eq.gains:eq.gains.map(()=>0);
+  filters.forEach((f,i)=>f.gain.value=g[i]);
+  pre.gain.value=eq.on?Math.pow(10,-Math.max(0,...g)/20):1;
+}
+function eqUI(){
+  $("#eqon").checked=eq.on;
+  $("#eqb").classList.toggle("off",!eq.on);
+  document.querySelectorAll(".eqs").forEach((r,i)=>{r.value=eq.gains[i];r.disabled=!eq.on;r.parentNode.querySelector(".g").textContent=(eq.gains[i]>0?"+":"")+eq.gains[i]});
+  $("#eqpre").value=eq.preset;$("#eqpre").disabled=!eq.on;$("#eqreset").disabled=!eq.on;
+  $("#eqnote").textContent=graphFailed?"The equalizer isn't supported in this browser.":"Gains are in dB. Boosts lower the overall volume slightly to avoid distortion.";
+}
+function eqChanged(){saveEq();applyEq();eqUI()}
+(function buildEq(){
+  const pre=$("#eqpre");
+  [...Object.keys(PRESETS),"Custom"].forEach(n=>{const o=document.createElement("option");o.value=o.textContent=n;pre.append(o)});
+  const box=$("#eqb");
+  BANDS.forEach((f,i)=>{
+    const d=document.createElement("div");d.className="band";
+    d.innerHTML='<span class="g">0</span><input type="range" class="eqs" min="-12" max="12" step="0.5" value="0" aria-label=""><span class="f"></span>';
+    const r=d.querySelector("input");r.setAttribute("aria-label",(f>=1000?f/1000+" kHz":f+" Hz")+" gain");
+    d.querySelector(".f").textContent=f>=1000?f/1000+"k":f;
+    r.oninput=()=>{eq.gains[i]=+r.value;eq.preset="Custom";eqChanged()};
+    box.append(d);
+  });
+  pre.onchange=()=>{eq.preset=pre.value;if(PRESETS[pre.value])eq.gains=PRESETS[pre.value].slice();eqChanged()};
+})();
+$("#eqon").onchange=e=>{
+  eq.on=e.target.checked;
+  if(eq.on&&!ensureGraph()){eq.on=false}
+  if(actx&&actx.state==="suspended")actx.resume();
+  eqChanged();
+};
+$("#eqreset").onclick=()=>{eq.preset="Flat";eq.gains=PRESETS.Flat.slice();eqChanged()};
+audio.addEventListener("play",()=>{if(eq.on&&ensureGraph()){applyEq();if(actx.state==="suspended")actx.resume()}});
+
+let setOpener=null;
+function openSettings(){setOpener=document.activeElement;closeMenu();$("#set").classList.add("on");$("#setx").focus()}
+function closeSettings(){$("#set").classList.remove("on");if(setOpener&&setOpener.focus)setOpener.focus()}
+$("#setBtn").onclick=openSettings;$("#setx").onclick=closeSettings;
+$("#set").addEventListener("click",e=>{if(e.target.id==="set")closeSettings()});
+applyTheme();eqUI();
 setP(sk);render();
 initLinked();

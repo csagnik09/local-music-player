@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#12151a">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>সুর</title>
-<script>try{var t=localStorage.getItem("sur.theme")||(matchMedia("(prefers-color-scheme:light)").matches?"light":"dark");document.documentElement.dataset.theme=t}catch(e){}</script>
+<script>try{var m=localStorage.getItem("sur.theme");if(m!=="light"&&m!=="dark")m="auto";document.documentElement.dataset.theme=m==="auto"?(matchMedia("(prefers-color-scheme:light)").matches?"light":"dark"):m}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@500;700&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 90 90'%3E%3Crect width='90' height='90' rx='22' fill='%231db954'/%3E%3Cpath d='M14 45C24 17 36 17 45 45S66 73 76 45' fill='none' stroke='black' stroke-width='11' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
@@ -54,8 +54,8 @@ svg{width:1em;height:1em;fill:currentColor;display:block}
 #q{width:100%;height:40px;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:0 14px 0 38px;border-radius:8px;font:inherit;outline:none;transition:border-color .15s}
 #q::placeholder{color:var(--muted)}
 #q:focus{border-color:var(--accent)}
-#theme{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--muted);display:grid;place-items:center;font-size:19px;flex:none;margin-left:auto;transition:color .15s,border-color .15s}
-#theme:hover{color:var(--text);border-color:var(--muted)}
+#setBtn{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--muted);display:grid;place-items:center;font-size:19px;flex:none;margin-left:auto;transition:color .15s,border-color .15s}
+#setBtn:hover{color:var(--text);border-color:var(--muted)}
 #addM{display:none;width:40px;height:40px;border-radius:8px;background:var(--accent);color:var(--on-accent);font-size:22px;place-items:center;flex:none}
 #hero{display:flex;align-items:flex-end;gap:24px;padding:28px 32px 6px}
 #cover{width:152px;aspect-ratio:1;border-radius:8px;flex:none;display:grid;place-items:center;font-size:44px;color:var(--muted);background:var(--panel2) center/cover;box-shadow:var(--shadow)}
@@ -66,6 +66,39 @@ svg{width:1em;height:1em;fill:currentColor;display:block}
 #big{width:48px;height:48px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-size:22px;transition:transform .15s,filter .15s}
 #big:hover{transform:scale(1.05);filter:brightness(1.08)}
 #actions .ic{color:var(--muted)}#actions .ic:hover{color:var(--text)}#actions .ic.on{color:var(--accent-ink)}
+#set{position:fixed;inset:0;background:#0009;display:none;place-items:center;z-index:45}#set.on{display:grid}
+.sbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:min(500px,94vw);max-height:90vh;max-height:90dvh;overflow:auto;padding:22px 24px 24px;box-shadow:var(--shadow)}
+.shead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.shead h3{margin:0;font-size:18px;font-weight:600}
+#setx{width:32px;height:32px;border-radius:8px;color:var(--muted);font-size:15px}#setx:hover{background:var(--panel2);color:var(--text)}
+.sbox section{padding:18px 0;border-top:1px solid var(--line)}.sbox section:first-of-type{border-top:0}
+.sbox h4{margin:0 0 12px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.sn{margin:10px 0 0;font-size:12px;color:var(--muted);line-height:1.5}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;background:var(--panel2);border-radius:10px}
+.seg button{height:34px;border-radius:7px;font-weight:500;color:var(--muted);transition:background .15s,color .15s}
+.seg button:hover{color:var(--text)}
+.seg button.on{background:var(--bg);color:var(--text);box-shadow:0 0 0 1px var(--line)}
+.eqh{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.eqh h4{margin:0}
+.tog{position:relative;width:42px;height:24px;flex:none;cursor:pointer}
+.tog input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;z-index:1}
+.tog span{position:absolute;inset:0;border-radius:99px;background:var(--hover);transition:background .2s}
+.tog span::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px #0005}
+.tog input:checked+span{background:var(--accent)}.tog input:checked+span::after{transform:translateX(18px)}
+.tog input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.eqrow{display:flex;gap:8px;margin-bottom:14px}
+#eqpre{flex:1;height:36px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;padding:0 10px}
+.eqb{display:grid;grid-template-columns:repeat(10,1fr);gap:2px;justify-items:center;transition:opacity .2s}
+.eqb.off{opacity:.45}
+.band{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.band .g{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;height:12px}
+.band .f{font-size:10px;color:var(--muted)}
+input[type=range].eqs{-webkit-appearance:none;appearance:none;writing-mode:vertical-lr;direction:rtl;width:24px;height:132px;flex:none;background:none;padding:0;margin:0;cursor:pointer}
+.eqs::-webkit-slider-runnable-track{width:4px;height:100%;border-radius:4px;background:var(--hover)}
+.eqs::-moz-range-track{width:4px;height:100%;border-radius:4px;background:var(--hover)}
+input[type=range].eqs::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);opacity:1;margin-left:-5px}
+.eqs::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:var(--accent)}
+.eqs:disabled{cursor:default}input[type=range].eqs:disabled::-webkit-slider-thumb{background:var(--muted)}.eqs:disabled::-moz-range-thumb{background:var(--muted)}
+@media (max-width:820px){#set{place-items:end center}.sbox{width:100%;max-height:88dvh;border-radius:16px 16px 0 0;border-bottom:0;padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}input[type=range].eqs{height:116px}}
 .pill{border:1px solid var(--line);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:500;color:var(--text);transition:border-color .15s,background .15s}
 .pill:hover{border-color:var(--muted);background:var(--panel)}
 #list{flex:1;overflow:auto;padding:0 20px 24px}
@@ -163,7 +196,7 @@ input[type=range]:hover::-webkit-slider-thumb{opacity:1}
 .mlogo{display:flex;padding:0}
 .mlogo .mark{width:28px;height:28px}
 .sw{order:3;flex:1 1 100%;max-width:none}
-#theme{order:1}#addM{order:2;display:grid}
+#setBtn{order:1}#addM{order:2;display:grid}
 #hero{padding:18px 16px 0;gap:16px}
 #cover{width:104px;font-size:32px}
 #hero h1{font-size:26px}
@@ -216,7 +249,7 @@ input[type=range]:hover::-webkit-slider-thumb{opacity:1}
 
  <main id="main">
   <div id="drop">Drop music to add it</div>
-  <div id="top"><div class="logo mlogo"><svg class="mark" viewBox="0 0 90 90" aria-hidden="true"><rect width="90" height="90" rx="22" fill="#1db954"/><path d="M14 45C24 17 36 17 45 45S66 73 76 45" fill="none" stroke="#000" stroke-width="8" stroke-linecap="round"/></svg><span class="lb">সুর</span></div><div class="sw"><svg viewBox="0 0 24 24"><path d="M10.5 3a7.500 7.500 0 0 1 5.900 12.100l4.300 4.300-1.400 1.400-4.300-4.300A7.500 7.500 0 1 1 10.500 3zm0 2a5.500 5.500 0 1 0 0 11 5.500 5.500 0 0 0 0-11z"/></svg><input id="q" placeholder="Search your songs" type="search"></div><button id="theme" aria-label="Switch theme"></button><button id="addM" aria-label="Add songs">＋</button></div>
+  <div id="top"><div class="logo mlogo"><svg class="mark" viewBox="0 0 90 90" aria-hidden="true"><rect width="90" height="90" rx="22" fill="#1db954"/><path d="M14 45C24 17 36 17 45 45S66 73 76 45" fill="none" stroke="#000" stroke-width="8" stroke-linecap="round"/></svg><span class="lb">সুর</span></div><div class="sw"><svg viewBox="0 0 24 24"><path d="M10.5 3a7.500 7.500 0 0 1 5.900 12.100l4.300 4.300-1.400 1.400-4.300-4.300A7.500 7.500 0 1 1 10.500 3zm0 2a5.500 5.500 0 1 0 0 11 5.500 5.500 0 0 0 0-11z"/></svg><input id="q" placeholder="Search your songs" type="search"></div><button id="setBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.800 7.800 0 0 0 0-2l2.100-1.600a.5.5 0 0 0 .1-.6l-2-3.500a.5.5 0 0 0-.6-.2l-2.500 1a7.400 7.400 0 0 0-1.700-1l-.4-2.600a.5.500 0 0 0-.5-.4h-4a.5.5 0 0 0-.5.4l-.4 2.600c-.6.300-1.200.600-1.700 1l-2.500-1a.5.5 0 0 0-.6.200l-2 3.500a.5.5 0 0 0 .1.600L4.600 11a7.800 7.800 0 0 0 0 2l-2.100 1.600a.5.5 0 0 0-.1.600l2 3.500c.1.200.4.300.6.200l2.500-1c.5.400 1.100.700 1.700 1l.4 2.600c0 .2.200.4.500.4h4c.3 0 .5-.2.5-.4l.4-2.600c.6-.3 1.200-.6 1.700-1l2.500 1c.2.100.5 0 .6-.2l2-3.500a.5.5 0 0 0-.1-.6zM12 15.500a3.500 3.500 0 1 1 0-7 3.500 3.500 0 0 1 0 7z"/></svg></button><button id="addM" aria-label="Add songs">＋</button></div>
   <div id="hero"><div id="cover">♪</div><div><small>Playlist</small><h1 id="ttl">Your Library</h1><p id="sub">0 songs</p></div></div>
   <div id="actions">
    <button id="big" aria-label="Play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
@@ -243,6 +276,20 @@ input[type=range]:hover::-webkit-slider-thumb{opacity:1}
  </footer>
 </div>
 
+<div id="set" role="dialog" aria-modal="true" aria-labelledby="sett"><div class="sbox">
+ <div class="shead"><h3 id="sett">Settings</h3><button id="setx" aria-label="Close">✕</button></div>
+ <section>
+  <h4>Appearance</h4>
+  <div class="seg" id="seg" role="group" aria-label="Theme"><button data-m="auto">Auto</button><button data-m="light">Light</button><button data-m="dark">Dark</button></div>
+  <p class="sn">Auto follows your device's light or dark setting.</p>
+ </section>
+ <section>
+  <div class="eqh"><h4>Equalizer</h4><label class="tog" aria-label="Turn equalizer on or off"><input type="checkbox" id="eqon"><span></span></label></div>
+  <div class="eqrow"><select id="eqpre" aria-label="Equalizer preset"></select><button class="pill" id="eqreset">Reset</button></div>
+  <div id="eqb" class="eqb"></div>
+  <p class="sn" id="eqnote"></p>
+ </section>
+</div></div>
 <div id="menu"></div><div id="toast"></div>
 <div id="dlg"><div class="box"><h3 id="dt"></h3><input id="di" maxlength="60" placeholder="Playlist name"><div class="bt"><button id="dc">Cancel</button><button id="dok">Save</button></div></div></div>
 <script>
@@ -635,6 +682,8 @@ addEventListener("drop",async e=>{
   else addFiles(e.dataTransfer.files);
 });
 addEventListener("keydown",e=>{
+  if(e.code==="Escape"&&$("#set").classList.contains("on")){closeSettings();return}
+  if($("#set").classList.contains("on"))return;
   if(e.target.tagName==="INPUT"&&e.target.type!=="range")return;
   if(e.code==="Escape")$("#bar").classList.remove("full");
   if(e.code==="Space"){e.preventDefault();toggle()}
@@ -692,11 +741,92 @@ async function initLinked(){
     if(linked.some(l=>!l.ok))toast("Tap Add, then Reconnect, to load your linked music folder",5000);
   }catch(e){}
 }
-const SUN='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
-const MOON='<svg viewBox="0 0 24 24"><path d="M21 12.800A9 9 0 1 1 11.200 3a7 7 0 0 0 9.800 9.800z"/></svg>';
-function setTheme(t){document.documentElement.dataset.theme=t;$("#theme").innerHTML=t==="dark"?SUN:MOON;try{localStorage.setItem("sur.theme",t)}catch(e){}}
-setTheme(document.documentElement.dataset.theme==="light"?"light":"dark");
-$("#theme").onclick=()=>setTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");
+/* ---------- settings: theme + equalizer ---------- */
+const mq=matchMedia("(prefers-color-scheme:light)");
+let themeMode="auto";
+try{const m=localStorage.getItem("sur.theme");if(m==="light"||m==="dark")themeMode=m}catch(e){}
+function applyTheme(){
+  document.documentElement.dataset.theme=themeMode==="auto"?(mq.matches?"light":"dark"):themeMode;
+  document.querySelectorAll("#seg button").forEach(b=>b.classList.toggle("on",b.dataset.m===themeMode));
+}
+function setThemeMode(m){themeMode=m;try{localStorage.setItem("sur.theme",m)}catch(e){}applyTheme()}
+(mq.addEventListener?mq.addEventListener("change",()=>{if(themeMode==="auto")applyTheme()}):mq.addListener(()=>{if(themeMode==="auto")applyTheme()}));
+document.querySelectorAll("#seg button").forEach(b=>b.onclick=()=>setThemeMode(b.dataset.m));
+
+const BANDS=[32,64,125,250,500,1000,2000,4000,8000,16000];
+const PRESETS={
+  "Flat":[0,0,0,0,0,0,0,0,0,0],
+  "Bass boost":[6,5,4,2,0,0,0,0,0,0],
+  "Treble boost":[0,0,0,0,0,1,2,4,5,6],
+  "Vocal":[-2,-2,-1,1,3,3,2,1,0,-1],
+  "Rock":[5,4,2,-1,-2,-1,2,4,5,5],
+  "Pop":[-1,1,3,4,3,0,-1,-1,1,2],
+  "Classical":[0,0,0,0,0,0,-3,-3,-3,-5],
+  "Electronic":[5,4,1,0,-2,2,1,2,4,5],
+  "Hip hop":[5,5,2,3,-1,-1,2,0,2,3],
+  "Acoustic":[4,4,3,1,2,2,3,3,2,1]
+};
+let eq={on:false,preset:"Flat",gains:PRESETS.Flat.slice()};
+try{const r=JSON.parse(localStorage.getItem("sur.eq")||"null");
+  if(r&&Array.isArray(r.gains)&&r.gains.length===10)eq={on:!!r.on,preset:r.preset||"Custom",gains:r.gains.map(n=>Math.max(-12,Math.min(12,+n||0)))}}catch(e){}
+const saveEq=()=>{try{localStorage.setItem("sur.eq",JSON.stringify(eq))}catch(e){}};
+let actx=null,filters=[],pre=null,graphFailed=false;
+function ensureGraph(){
+  if(actx||graphFailed)return !!actx;
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC){graphFailed=true;return false}
+  try{
+    actx=new AC();
+    const src=actx.createMediaElementSource(audio);
+    filters=BANDS.map((f,i)=>{const n=actx.createBiquadFilter();n.type=i===0?"lowshelf":i===BANDS.length-1?"highshelf":"peaking";n.frequency.value=f;n.Q.value=1.1;n.gain.value=0;return n});
+    pre=actx.createGain();
+    let node=src;filters.forEach(f=>{node.connect(f);node=f});node.connect(pre);pre.connect(actx.destination);
+    return true;
+  }catch(e){actx=null;graphFailed=true;return false}
+}
+function applyEq(){
+  if(!actx)return;
+  const g=eq.on?eq.gains:eq.gains.map(()=>0);
+  filters.forEach((f,i)=>f.gain.value=g[i]);
+  pre.gain.value=eq.on?Math.pow(10,-Math.max(0,...g)/20):1;
+}
+function eqUI(){
+  $("#eqon").checked=eq.on;
+  $("#eqb").classList.toggle("off",!eq.on);
+  document.querySelectorAll(".eqs").forEach((r,i)=>{r.value=eq.gains[i];r.disabled=!eq.on;r.parentNode.querySelector(".g").textContent=(eq.gains[i]>0?"+":"")+eq.gains[i]});
+  $("#eqpre").value=eq.preset;$("#eqpre").disabled=!eq.on;$("#eqreset").disabled=!eq.on;
+  $("#eqnote").textContent=graphFailed?"The equalizer isn't supported in this browser.":"Gains are in dB. Boosts lower the overall volume slightly to avoid distortion.";
+}
+function eqChanged(){saveEq();applyEq();eqUI()}
+(function buildEq(){
+  const pre=$("#eqpre");
+  [...Object.keys(PRESETS),"Custom"].forEach(n=>{const o=document.createElement("option");o.value=o.textContent=n;pre.append(o)});
+  const box=$("#eqb");
+  BANDS.forEach((f,i)=>{
+    const d=document.createElement("div");d.className="band";
+    d.innerHTML='<span class="g">0</span><input type="range" class="eqs" min="-12" max="12" step="0.5" value="0" aria-label=""><span class="f"></span>';
+    const r=d.querySelector("input");r.setAttribute("aria-label",(f>=1000?f/1000+" kHz":f+" Hz")+" gain");
+    d.querySelector(".f").textContent=f>=1000?f/1000+"k":f;
+    r.oninput=()=>{eq.gains[i]=+r.value;eq.preset="Custom";eqChanged()};
+    box.append(d);
+  });
+  pre.onchange=()=>{eq.preset=pre.value;if(PRESETS[pre.value])eq.gains=PRESETS[pre.value].slice();eqChanged()};
+})();
+$("#eqon").onchange=e=>{
+  eq.on=e.target.checked;
+  if(eq.on&&!ensureGraph()){eq.on=false}
+  if(actx&&actx.state==="suspended")actx.resume();
+  eqChanged();
+};
+$("#eqreset").onclick=()=>{eq.preset="Flat";eq.gains=PRESETS.Flat.slice();eqChanged()};
+audio.addEventListener("play",()=>{if(eq.on&&ensureGraph()){applyEq();if(actx.state==="suspended")actx.resume()}});
+
+let setOpener=null;
+function openSettings(){setOpener=document.activeElement;closeMenu();$("#set").classList.add("on");$("#setx").focus()}
+function closeSettings(){$("#set").classList.remove("on");if(setOpener&&setOpener.focus)setOpener.focus()}
+$("#setBtn").onclick=openSettings;$("#setx").onclick=closeSettings;
+$("#set").addEventListener("click",e=>{if(e.target.id==="set")closeSettings()});
+applyTheme();eqUI();
 setP(sk);render();
 initLinked();
 
