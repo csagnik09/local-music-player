@@ -37,6 +37,7 @@ function renderPls(){
 }
 const AUD=/\.(mp3|m4a|mp4|aac|flac|wav|ogg|oga|opus|weba|webm)$/i,IMG=/\.(jpe?g|png|webp|gif|bmp)$/i;
 const P='<path d="M8 5v14l11-7z"/>',PA='<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>';
+const fmtTotal=sec=>{const m=Math.round(sec/60),h=Math.floor(m/60),r=m%60;return h?h+" hr"+(r?" "+r+" min":""):m+" min"};
 const fmt=s=>{if(!isFinite(s))return"–:––";s=Math.floor(s);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
 const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h};
 const grad=s=>{const h=hue(s);return`linear-gradient(135deg,hsl(${h} 60% 45%),hsl(${(h+50)%360} 60% 28%))`};
@@ -242,7 +243,7 @@ function render(){
   $("#hero small").textContent=view==="album"?"Album":(view==="albums"||view==="playlists")?"Collection":view==="playlist"?"Playlist":"Library";
   $("#ttl").textContent=view==="playlists"?"Playlists":view==="playlist"?curPl().name:view==="album"?at.album:view==="albums"?"Albums":view==="liked"?"Liked Songs":"Your Library";
   const tot=v.reduce((s,t)=>s+(t.dur||0),0);
-  $("#sub").textContent=(view==="albums"?groups(v).length+" albums · ":"")+v.length+" song"+(v.length==1?"":"s")+(tot?" · "+Math.round(tot/60)+" min":"");
+  $("#sub").textContent=(view==="albums"?groups(v).length+" albums · ":"")+v.length+" song"+(v.length==1?"":"s")+(tot?" · "+fmtTotal(tot):"");
   if(view==="playlists")$("#sub").textContent=playlists.length+" playlist"+(playlists.length==1?"":"s");
   if(view==="playlist"){const p=curPl(),miss=p.items.filter(k=>!keys.has(k)).length;if(miss)$("#sub").textContent+=" · "+miss+" not loaded"}
   if(cur){$("#nt").textContent=cur.title;$("#na").textContent=cur.artist+" · "+cur.album;
