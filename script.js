@@ -7,9 +7,9 @@ try{playlists=JSON.parse(localStorage.getItem("lmp.playlists")||"[]")}catch(e){p
 const save=()=>{try{localStorage.setItem("lmp.playlists",JSON.stringify(playlists))}catch(e){}};
 const tkey=t=>t.path+"|"+t.file.size;
 const curPl=()=>playlists.find(p=>p.id===plId);
-let tt;const toast=m=>{const e=$("#toast");e.textContent=m;e.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>e.classList.remove("on"),1800)};
+let tt;const toast=(m,ms=1800)=>{const e=$("#toast");e.textContent=m;e.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>e.classList.remove("on"),ms)};
 function ask(title,val,confirm){return new Promise(res=>{
-  const i=$("#di");$("#dt").textContent=title;i.style.display=confirm?"none":"";i.value=val||"";$("#dlg").classList.add("on");
+  const i=$("#di");$("#dt").textContent=title;$("#dok").textContent=confirm?"Delete":"Save";i.style.display=confirm?"none":"";i.value=val||"";$("#dlg").classList.add("on");
   if(!confirm)setTimeout(()=>{i.focus();i.select()},30);
   const done=v=>{$("#dlg").classList.remove("on");$("#dok").onclick=$("#dc").onclick=i.onkeydown=null;res(v)};
   $("#dok").onclick=()=>done(confirm?true:(i.value.trim()||null));$("#dc").onclick=()=>done(null);
@@ -40,7 +40,7 @@ const P='<path d="M8 5v14l11-7z"/>',PA='<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>';
 const fmt=s=>{if(!isFinite(s))return"–:––";s=Math.floor(s);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
 const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h};
 const grad=s=>{const h=hue(s);return`linear-gradient(135deg,hsl(${h} 60% 45%),hsl(${(h+50)%360} 60% 28%))`};
-const akey=t=>t.album.toLowerCase();
+const akey=t=>t.ak||(t.ak=t.album.toLowerCase());
 const artOf=t=>t&&(t.art||(dirImg[t.dir]||{}).url)||null;
 const bg=t=>{const a=artOf(t);return a?`url('${a}') center/cover no-repeat`:grad(t.album+t.title)};
 
@@ -134,39 +134,57 @@ function parse(name){
   else{const k=n.match(/^(\d{1,3})[.\s)-]+(.+)$/);if(k){trk=+k[1];n=k[2]}}
   return{title:n,artist:a,trk};
 }
-const resort=()=>tracks.sort((a,b)=>a.album.localeCompare(b.album)||(a.trk??999)-(b.trk??999)||a.title.localeCompare(b.title,undefined,{numeric:true}));
-let tm;const sched=()=>{clearTimeout(tm);tm=setTimeout(()=>{resort();render()},80)};
+const colA=new Intl.Collator(),colT=new Intl.Collator(undefined,{numeric:true});
+const resort=()=>tracks.sort((a,b)=>colA.compare(a.album,b.album)||(a.trk??999)-(b.trk??999)||colT.compare(a.title,b.title));
+let tm;const sched=()=>{clearTimeout(tm);tm=setTimeout(()=>{resort();render()},tracks.length>400?500:80)};
+const jobs=[],keys=new Set(),artCache=new Map();let busy=0;
+function enqueue(job){jobs.push(job);pump()}
+function pump(){while(busy<3&&jobs.length){const j=jobs.shift();busy++;Promise.resolve().then(j).catch(()=>{}).then(()=>{busy--;pump()})}}
+async function artURL(b){
+  const mid=b.size>>1,h=new Uint8Array(await b.slice(0,48).arrayBuffer()),m=new Uint8Array(await b.slice(mid,mid+48).arrayBuffer());
+  const k=b.size+":"+h.join(",")+":"+m.join(",");
+  if(!artCache.has(k))artCache.set(k,toURL(b));
+  return artCache.get(k);
+}
+function getDur(t){return new Promise(res=>{
+  const a=new Audio();a.preload="metadata";
+  const end=()=>{clearTimeout(to);a.onloadedmetadata=a.onerror=null;a.removeAttribute("src");a.load();res()};
+  const to=setTimeout(end,8000);
+  a.onloadedmetadata=()=>{t.dur=a.duration;end()};a.onerror=end;a.src=t.url;
+})}
 function addFiles(list){
   const dirOf=p=>p.includes("/")?p.slice(0,p.lastIndexOf("/")):"";
   const all=[...list].map(f=>({f,p:f.webkitRelativePath||f._path||f.name}));
   all.forEach(({f,p})=>{
     if(!IMG.test(f.name)||f.type.startsWith("audio"))return;
     const d=dirOf(p),good=/cover|folder|front|album|art/i.test(f.name),c=dirImg[d];
-    if(!c||(good&&!c.good)){const o=dirImg[d]={good,url:null};toURL(f).then(u=>{o.url=u;sched()})}
+    if(!c||(good&&!c.good)){const o=dirImg[d]={good,url:null};enqueue(async()=>{o.url=await toURL(f);sched()})}
   });
   const added=[];
   all.forEach(({f,p})=>{
     if(!(f.type.startsWith("audio/")||AUD.test(f.name)))return;
-    if(tracks.some(t=>t.path===p&&t.file.size===f.size))return;
+    const k=p+"|"+f.size;if(keys.has(k))return;keys.add(k);
     const dir=dirOf(p),pr=parse(f.name);
-    const t={id:nid++,file:f,path:p,dir,url:URL.createObjectURL(f),dur:NaN,liked:false,title:pr.title,artist:pr.artist,trk:pr.trk,album:dir?dir.split("/").pop():"Singles",art:null};
+    const t={id:nid++,file:f,path:p,dir,url:URL.createObjectURL(f),dur:NaN,liked:false,title:pr.title,artist:pr.artist,trk:pr.trk,album:dir?dir.split("/").pop():"Singles",art:null,ak:null,hay:null};
     tracks.push(t);added.push(t);
   });
   resort();render();
-  added.forEach(async t=>{
-    const a=new Audio();a.preload="metadata";a.src=t.url;a.onloadedmetadata=()=>{t.dur=a.duration;sched()};
+  added.forEach(t=>enqueue(async()=>{
     try{const m=await readTags(t.file);
-      if(m.title)t.title=m.title;if(m.artist)t.artist=m.artist;if(m.album)t.album=m.album;
-      if(m.trk)t.trk=m.trk;if(m.art)t.art=await toURL(m.art);
+      if(m.title)t.title=m.title;if(m.artist)t.artist=m.artist;if(m.album){t.album=m.album;t.ak=null}
+      if(m.trk)t.trk=m.trk;if(m.art)t.art=await artURL(m.art);
+      t.hay=null;
     }catch(e){}
+    await getDur(t);
     sched();
-  });
+  }));
 }
 function visible(){
   let base;
   if(view==="playlist"){const p=curPl(),m=new Map(tracks.map(t=>[tkey(t),t]));base=p?p.items.map(k=>m.get(k)).filter(Boolean):[]}
   else base=tracks.filter(t=>view==="liked"?t.liked:view==="album"?akey(t)===albumKey:true);
-  return base.filter(t=>(t.title+" "+t.artist+" "+t.album).toLowerCase().includes(filter));
+  if(!filter)return base;
+  return base.filter(t=>(t.hay||(t.hay=(t.title+" "+t.artist+" "+t.album).toLowerCase())).includes(filter));
 }
 function groups(v){
   const m=new Map();
@@ -178,13 +196,44 @@ function groups(v){
 }
 
 /* ---------- render ---------- */
+const RH=60,BUF=6;
+let vList=[],vTick=0,gShown=0,lastView="";
+function rowHTML(t,i){
+  const c=cur===t;
+  return`<div class="row ${c?"cur":""} ${c&&!audio.paused?"playing":""}" data-id="${t.id}">
+    <span class="n"><span class="num">${view==="album"&&t.trk?t.trk:i+1}</span><span class="bars"><i></i><i></i><i></i></span></span>
+    <span class="t"><span class="art">${artOf(t)?"":"♪"}</span><div><b></b><span></span></div></span>
+    <button class="addpl" data-m="${t.id}" aria-label="Add to playlist" title="Add to playlist">＋</button><button class="heart ${t.liked?"on":""}" data-h="${t.id}" aria-label="Like"><svg viewBox="0 0 24 24"><path d="M12 21s-8-5.200-8-11a4.500 4.500 0 0 1 8-2.800A4.500 4.500 0 0 1 20 10c0 5.800-8 11-8 11z"/></svg></button>
+    <span class="d">${fmt(t.dur)}</span></div>`;
+}
+function paintRows(force){
+  const L=$("#list"),box=$("#vrows");if(!box)return;
+  const v=vList,n=v.length;
+  const top=box.getBoundingClientRect().top-L.getBoundingClientRect().top+L.scrollTop;
+  let s=Math.floor((L.scrollTop-top)/RH)-BUF;s=Math.max(0,Math.min(s,Math.max(0,n-1)));
+  const e=Math.min(n,s+Math.ceil(L.clientHeight/RH)+BUF*2);
+  if(!force&&box.dataset.s==s&&box.dataset.e==e)return;
+  box.dataset.s=s;box.dataset.e=e;
+  box.style.paddingTop=s*RH+"px";box.style.paddingBottom=(n-e)*RH+"px";
+  box.innerHTML=v.slice(s,e).map((t,k)=>rowHTML(t,s+k)).join("");
+  [...box.children].forEach((r,k)=>{const t=v[s+k];r.querySelector("b").textContent=t.title;r.querySelector(".art").style.background=bg(t);r.querySelector(".t span:last-child").textContent=t.artist+(view==="album"?"":" · "+t.album)});
+}
+function appendCards(n){
+  const grid=$("#list .grid");if(!grid||view!=="albums")return;
+  const from=gShown,to=Math.min(shown.length,from+n);if(from>=to)return;
+  grid.insertAdjacentHTML("beforeend",shown.slice(from,to).map((g,k)=>`<div class="card" data-a="${from+k}"><div class="art">${artOf(g.art)?"":"♪"}</div><b></b><span></span></div>`).join(""));
+  const cards=grid.children;
+  for(let i=from;i<to;i++){const c=cards[i],g=shown[i];c.querySelector("b").textContent=g.name;c.querySelector(".art").style.background=bg(g.art);c.querySelector("span").textContent=g.artist+" · "+g.tracks.length+" songs"}
+  gShown=to;
+}
 function render(){
-  const v=visible(),L=$("#list");
+  const v=visible(),L=$("#list"),pv=lastView;
   if(view==="album"&&!tracks.some(t=>akey(t)===albumKey))view="albums";
   if(view==="playlist"&&!curPl())view="all";
   $("#plact").style.display=view==="playlist"?"flex":"none";
   bigIcon();
   $("#actions").style.display=(view==="albums"||view==="playlists")?"none":"";
+  lastView=view;
   document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("on",b.dataset.v===view||(view==="album"&&b.dataset.v==="albums")||(view==="playlist"&&b.dataset.v==="playlists")));
   renderPls();
   const at=view==="album"?tracks.find(t=>akey(t)===albumKey):view==="playlist"?(v.find(artOf)||v[0]||null):null;
@@ -195,7 +244,7 @@ function render(){
   const tot=v.reduce((s,t)=>s+(t.dur||0),0);
   $("#sub").textContent=(view==="albums"?groups(v).length+" albums · ":"")+v.length+" song"+(v.length==1?"":"s")+(tot?" · "+Math.round(tot/60)+" min":"");
   if(view==="playlists")$("#sub").textContent=playlists.length+" playlist"+(playlists.length==1?"":"s");
-  if(view==="playlist"){const p=curPl(),miss=p.items.filter(k=>!tracks.some(t=>tkey(t)===k)).length;if(miss)$("#sub").textContent+=" · "+miss+" not loaded"}
+  if(view==="playlist"){const p=curPl(),miss=p.items.filter(k=>!keys.has(k)).length;if(miss)$("#sub").textContent+=" · "+miss+" not loaded"}
   if(cur){$("#nt").textContent=cur.title;$("#na").textContent=cur.artist+" · "+cur.album;
     const a=$("#nart");a.style.background=bg(cur);a.textContent=artOf(cur)?"":"♪"}
   if(view==="playlists"){
@@ -214,18 +263,14 @@ function render(){
   }
   if(view==="albums"){
     shown=groups(v);
-    L.innerHTML=`<div class="grid">`+shown.map((g,i)=>`<div class="card" data-a="${i}"><div class="art">${artOf(g.art)?"":"♪"}</div><b></b><span></span></div>`).join("")+`</div>`;
-    L.querySelectorAll(".card").forEach((c,i)=>{c.querySelector("b").textContent=shown[i].name;c.querySelector(".art").style.background=bg(shown[i].art);c.querySelector("span").textContent=shown[i].artist+" · "+shown[i].tracks.length+" songs"});
+    const first=Math.max(48,pv==="albums"?gShown:0);
+    L.innerHTML=`<div class="grid"></div>`;gShown=0;
+    appendCards(first);
     return;
   }
-  L.innerHTML=`<div class="row head"><span class="n">#</span><span>Title</span><span></span><span></span><span class="d">Time</span></div>`+v.map((t,i)=>{
-    const c=cur===t;
-    return`<div class="row ${c?"cur":""} ${c&&!audio.paused?"playing":""}" data-id="${t.id}">
-    <span class="n"><span class="num">${view==="album"&&t.trk?t.trk:i+1}</span><span class="bars"><i></i><i></i><i></i></span></span>
-    <span class="t"><span class="art">${artOf(t)?"":"♪"}</span><div><b></b><span></span></div></span>
-    <button class="addpl" data-m="${t.id}" aria-label="Add to playlist" title="Add to playlist">＋</button><button class="heart ${t.liked?"on":""}" data-h="${t.id}" aria-label="Like"><svg viewBox="0 0 24 24"><path d="M12 21s-8-5.200-8-11a4.500 4.500 0 0 1 8-2.800A4.500 4.500 0 0 1 20 10c0 5.800-8 11-8 11z"/></svg></button>
-    <span class="d">${fmt(t.dur)}</span></div>`}).join("");
-  [...L.querySelectorAll(".row[data-id]")].forEach((r,i)=>{const t=v[i];r.querySelector("b").textContent=t.title;r.querySelector(".art").style.background=bg(t);r.querySelector(".t span:last-child").textContent=t.artist+(view==="album"?"":" · "+t.album)});
+  const st=L.scrollTop;
+  L.innerHTML=`<div class="row head"><span class="n">#</span><span>Title</span><span></span><span></span><span class="d">Time</span></div><div id="vrows" style="height:${v.length*RH}px"></div>`;
+  L.scrollTop=st;vList=v;paintRows(true);
 }
 
 /* ---------- playback ---------- */
@@ -296,7 +341,12 @@ $("#list").onclick=e=>{
 };
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{view=b.dataset.v;$("#list").scrollTop=0;render()});
 document.addEventListener("click",e=>{if(!e.target.closest("#menu,.addpl,#addM,#addF"))closeMenu()});
-$("#list").addEventListener("scroll",closeMenu);
+$("#list").addEventListener("scroll",()=>{
+  closeMenu();const L=$("#list");
+  if(view==="albums"){if(gShown<shown.length&&L.scrollTop+L.clientHeight>L.scrollHeight-700)appendCards(48)}
+  else if(vList.length&&!vTick)vTick=requestAnimationFrame(()=>{vTick=0;paintRows(false)});
+});
+addEventListener("resize",()=>{if(vList.length)paintRows(false)});
 $("#newPl").onclick=async()=>{const n=await ask("New playlist","");if(n){const p=newPl(n);view="playlist";plId=p.id;render()}};
 $("#plren").onclick=async()=>{const p=curPl(),n=await ask("Rename playlist",p.name);if(n){p.name=n;save();render()}};
 $("#pldel").onclick=async()=>{const p=curPl();if(await ask("Delete “"+p.name+"”?","",true)){playlists=playlists.filter(x=>x!==p);save();view="all";render()}};
@@ -306,6 +356,7 @@ const openAdd=btn=>{
   m.innerHTML="";
   [["Add songs","#fi"],["Add folder","#fd"]].forEach(([t,id])=>{
     const b=document.createElement("button");b.textContent=t;b.onclick=()=>{closeMenu();$(id).click()};m.append(b)});
+  addLinkedItems(m);
   m.style.display="block";
   m.style.left=Math.max(8,Math.min(r.left,innerWidth-m.offsetWidth-14))+"px";m.style.top=(r.bottom+6)+"px";
 };
@@ -347,9 +398,56 @@ addEventListener("keydown",e=>{
 if("mediaSession"in navigator){const m=navigator.mediaSession;
   m.setActionHandler("play",()=>audio.play());m.setActionHandler("pause",()=>audio.pause());
   m.setActionHandler("nexttrack",()=>step(1,false));m.setActionHandler("previoustrack",()=>step(-1,false));}
+/* ---------- linked folders (Chrome / Edge) ---------- */
+const HAS_FS=!!window.showDirectoryPicker;
+let linked=[];
+const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open("sur",1);r.onupgradeneeded=()=>r.result.createObjectStore("dirs",{keyPath:"name"});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+async function dbAll(){const d=await idb();return new Promise(res=>{const q=d.transaction("dirs").objectStore("dirs").getAll();q.onsuccess=()=>res(q.result);q.onerror=()=>res([])})}
+async function dbPut(h){const d=await idb();return new Promise(res=>{const t=d.transaction("dirs","readwrite");t.objectStore("dirs").put({name:h.name,handle:h});t.oncomplete=res;t.onerror=res})}
+async function dbClear(){const d=await idb();return new Promise(res=>{const t=d.transaction("dirs","readwrite");t.objectStore("dirs").clear();t.oncomplete=res;t.onerror=res})}
+async function scanDir(dh,path,out){
+  for await(const [name,h] of dh.entries()){
+    if(h.kind==="file"){if(AUD.test(name)||IMG.test(name)){const f=await h.getFile();f._path=path+name;out.push(f)}}
+    else await scanDir(h,path+name+"/",out);
+  }
+}
+async function loadLinked(h){
+  toast("Loading "+h.name+"…",3000);
+  const out=[];await scanDir(h,h.name+"/",out);addFiles(out);
+}
+async function linkFolder(){
+  try{
+    const h=await showDirectoryPicker({mode:"read"});await dbPut(h);
+    linked=linked.filter(x=>x.name!==h.name);linked.push({name:h.name,handle:h,ok:true});
+    await loadLinked(h);
+  }catch(e){if(e.name!=="AbortError")toast("Folder linking isn't available here. Try the downloaded files in Chrome or Edge.",4000)}
+}
+async function reconnect(l){
+  try{if(await l.handle.requestPermission({mode:"read"})==="granted"){l.ok=true;await loadLinked(l.handle)}else toast("Permission was not given")}
+  catch(e){toast("Couldn't open that folder. Link it again.",3000)}
+}
+async function forgetLinked(){linked=[];await dbClear();toast("Linked folders forgotten")}
+function addLinkedItems(m){
+  if(!HAS_FS)return;
+  const mk=(t,fn)=>{const b=document.createElement("button");b.textContent=t;b.onclick=()=>{closeMenu();fn()};m.append(b)};
+  mk("Link a folder (remember it)",linkFolder);
+  linked.forEach(l=>mk((l.ok?"↻ Rescan ":"↻ Reconnect ")+l.name,()=>reconnect(l)));
+  if(linked.length)mk("Forget linked folders",forgetLinked);
+}
+async function initLinked(){
+  if(!HAS_FS)return;
+  try{
+    for(const r of await dbAll()){
+      const l={name:r.name,handle:r.handle,ok:false};linked.push(l);
+      if(await r.handle.queryPermission({mode:"read"})==="granted"){l.ok=true;loadLinked(r.handle)}
+    }
+    if(linked.some(l=>!l.ok))toast("Tap Add, then Reconnect, to load your linked music folder",5000);
+  }catch(e){}
+}
 const SUN='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
 const MOON='<svg viewBox="0 0 24 24"><path d="M21 12.800A9 9 0 1 1 11.200 3a7 7 0 0 0 9.800 9.800z"/></svg>';
 function setTheme(t){document.documentElement.dataset.theme=t;$("#theme").innerHTML=t==="dark"?SUN:MOON;try{localStorage.setItem("sur.theme",t)}catch(e){}}
 setTheme(document.documentElement.dataset.theme==="light"?"light":"dark");
 $("#theme").onclick=()=>setTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");
 setP(sk);render();
+initLinked();
