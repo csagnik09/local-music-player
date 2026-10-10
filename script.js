@@ -1,5 +1,10 @@
 const $=s=>document.querySelector(s);
 const audio=new Audio();audio.preload="metadata";
+/* keep playing when the screen locks: a real element in the page + a complete media session */
+audio.setAttribute("playsinline","");audio.setAttribute("webkit-playsinline","");audio.style.display="none";
+document.body.appendChild(audio);
+let lastUserPause=0,lastSysPause=0,hiddenAt=0;
+const userPause=()=>{lastUserPause=Date.now();audio.pause()};
 let tracks=[],view="all",albumKey=null,cur=null,shuffle=false,repeat=0,filter="",nid=1,shown=[];
 const dirImg={};
 let playlists=[],plId=null;
@@ -285,12 +290,12 @@ function step(d,auto){
   const v=visible();if(!v.length)return;
   const c=v.indexOf(cur);let n;
   if(shuffle&&v.length>1){do{n=Math.floor(Math.random()*v.length)}while(n===c)}
-  else{n=c+d;if(n>=v.length){if(repeat===2||!auto)n=0;else{audio.pause();audio.currentTime=0;return}}if(n<0)n=v.length-1}
+  else{n=c+d;if(n>=v.length){if(repeat===2||!auto)n=0;else{userPause();audio.currentTime=0;return}}if(n<0)n=v.length-1}
   playT(v[n]);
 }
 function toggle(){
   if(!cur){const v=visible();if(v.length)playT(shuffle?v[Math.floor(Math.random()*v.length)]:v[0]);return}
-  audio.paused?audio.play():audio.pause();
+  audio.paused?audio.play():userPause();
 }
 function bigIcon(){
   const on=!audio.paused&&!!cur&&visible().includes(cur);
@@ -399,8 +404,45 @@ addEventListener("keydown",e=>{
   else if(e.code==="ArrowLeft")audio.currentTime-=5;
 });
 if("mediaSession"in navigator){const m=navigator.mediaSession;
-  m.setActionHandler("play",()=>audio.play());m.setActionHandler("pause",()=>audio.pause());
-  m.setActionHandler("nexttrack",()=>step(1,false));m.setActionHandler("previoustrack",()=>step(-1,false));}
+  const on=(n,f)=>{try{m.setActionHandler(n,f)}catch(e){}};
+  on("play",()=>audio.play());on("pause",()=>userPause());
+  on("stop",()=>userPause());
+  on("nexttrack",()=>step(1,false));on("previoustrack",()=>step(-1,false));
+  on("seekto",d=>{if(d&&isFinite(d.seekTime)){audio.currentTime=d.seekTime}});
+  on("seekbackward",d=>{audio.currentTime=Math.max(0,audio.currentTime-((d&&d.seekOffset)||10))});
+  on("seekforward",d=>{audio.currentTime=Math.min(audio.duration||1e9,audio.currentTime+((d&&d.seekOffset)||10))});
+}
+let lastPos=0;
+function mediaState(force){
+  if(!("mediaSession"in navigator))return;
+  const m=navigator.mediaSession;
+  try{m.playbackState=audio.paused?"paused":"playing"}catch(e){}
+  const now=Date.now();
+  if(!force&&now-lastPos<1000)return;lastPos=now;
+  try{if(isFinite(audio.duration)&&audio.duration>0)m.setPositionState({duration:audio.duration,playbackRate:audio.playbackRate||1,position:Math.min(audio.currentTime,audio.duration)})}catch(e){}
+}
+audio.addEventListener("play",()=>mediaState(true));
+audio.addEventListener("pause",()=>{lastSysPause=Date.now();mediaState(true);maybeResume()});
+audio.addEventListener("playing",()=>mediaState(true));
+audio.addEventListener("timeupdate",()=>mediaState(false));
+audio.addEventListener("loadedmetadata",()=>mediaState(true));
+audio.addEventListener("seeked",()=>mediaState(true));
+
+/* Some phones pause the audio when the screen locks. If it happens right as the page goes
+   to the background (and it was not the user pausing), start it again. */
+function maybeResume(){
+  if(!cur||audio.ended||!audio.paused)return;
+  const now=Date.now();
+  if(now-lastUserPause<2500)return;
+  if(!document.hidden&&now-hiddenAt>1500)return;
+  audio.play().catch(()=>{});
+}
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden){
+    hiddenAt=Date.now();
+    if(audio.paused&&Date.now()-lastSysPause<1500)maybeResume();
+  }else if(actx&&actx.state!=="running"&&!audio.paused){actx.resume().catch(()=>{})}
+});
 /* ---------- linked folders (Chrome / Edge) ---------- */
 const HAS_FS=!!window.showDirectoryPicker;
 let linked=[];
@@ -459,6 +501,7 @@ function setThemeMode(m){themeMode=m;try{localStorage.setItem("sur.theme",m)}cat
 (mq.addEventListener?mq.addEventListener("change",()=>{if(themeMode==="auto")applyTheme()}):mq.addListener(()=>{if(themeMode==="auto")applyTheme()}));
 document.querySelectorAll("#seg button").forEach(b=>b.onclick=()=>setThemeMode(b.dataset.m));
 
+const IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const BANDS=[32,64,125,250,500,1000,2000,4000,8000,16000];
 const PRESETS={
   "Flat":[0,0,0,0,0,0,0,0,0,0],
@@ -483,6 +526,7 @@ function ensureGraph(){
   if(!AC){graphFailed=true;return false}
   try{
     actx=new AC();
+    actx.onstatechange=()=>{if(actx.state!=="running"&&!audio.paused)actx.resume().catch(()=>{})};
     const src=actx.createMediaElementSource(audio);
     filters=BANDS.map((f,i)=>{const n=actx.createBiquadFilter();n.type=i===0?"lowshelf":i===BANDS.length-1?"highshelf":"peaking";n.frequency.value=f;n.Q.value=1.1;n.gain.value=0;return n});
     pre=actx.createGain();
@@ -501,7 +545,7 @@ function eqUI(){
   $("#eqb").classList.toggle("off",!eq.on);
   document.querySelectorAll(".eqs").forEach((r,i)=>{r.value=eq.gains[i];r.disabled=!eq.on;r.parentNode.querySelector(".g").textContent=(eq.gains[i]>0?"+":"")+eq.gains[i]});
   $("#eqpre").value=eq.preset;$("#eqpre").disabled=!eq.on;$("#eqreset").disabled=!eq.on;
-  $("#eqnote").textContent=graphFailed?"The equalizer isn't supported in this browser.":"Gains are in dB. Boosts lower the overall volume slightly to avoid distortion.";
+  $("#eqnote").textContent=graphFailed?"The equalizer isn't supported in this browser.":IOS?"Gains are in dB. On iPhone and iPad, turn the equalizer off if you want music to keep playing when the screen locks.":"Gains are in dB. Boosts lower the overall volume slightly to avoid distortion.";
 }
 function eqChanged(){saveEq();applyEq();eqUI()}
 (function buildEq(){
